@@ -18,14 +18,29 @@ import heapq
 
 def BreadthFirstSearch(problem: Problem[S, A], initial_state: S) -> Solution:
     # TODO: ADD YOUR CODE HERE
-    NotImplemented()
+    frontier = deque()
+    frontier.append((initial_state, []))
+    explored = set()
+    while frontier:
+        (state, parent_actions) = frontier.popleft()
+        if state in explored:
+            continue
+        explored.add(state)
+        actions = problem.get_actions(state)
+        for action in actions:
+            current_child_actions = parent_actions.copy()
+            current_child_actions.append(action)
+            next_state = problem.get_successor(state, action)
+            if problem.is_goal(next_state):
+                return current_child_actions
+            frontier.append((next_state, current_child_actions))
+    return None
 
 
 def DepthFirstSearch(problem: Problem[S, A], initial_state: S) -> Solution:
     # TODO: ADD YOUR CODE HERE
     frontier = deque()
-    dummy_actions: Tuple[S, List[A]] = []
-    frontier.append((initial_state, dummy_actions))
+    frontier.append((initial_state, []))
     explored = set()
     while frontier:
         (state, parent_actions) = frontier.pop()
@@ -35,13 +50,11 @@ def DepthFirstSearch(problem: Problem[S, A], initial_state: S) -> Solution:
         if problem.is_goal(state):
             return parent_actions
         actions = problem.get_actions(state)
-        child_actions = parent_actions.copy()
         for action in actions:
-            current_child_actions = child_actions.copy()
+            current_child_actions = parent_actions.copy()
             current_child_actions.append(action)
             next_state = problem.get_successor(state, action)
             frontier.append((next_state, current_child_actions))
-    print("No solution found")
     return None
 
 
