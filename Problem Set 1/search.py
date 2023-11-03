@@ -1,5 +1,3 @@
-from typing import Tuple, List
-
 from problem import HeuristicFunction, Problem, S, A, Solution
 from collections import deque
 from helpers.utils import NotImplemented
@@ -61,11 +59,11 @@ def DepthFirstSearch(problem: Problem[S, A], initial_state: S) -> Solution:
 def UniformCostSearch(problem: Problem[S, A], initial_state: S) -> Solution:
     # TODO: ADD YOUR CODE HERE
     frontier = []
-    id = 1  # To prevent comparing states (Which causes an error)
-    heapq.heappush(frontier, (0, (0, initial_state, [])))
+    id = 1  # To prevent comparing states (Which causes an error) and to make sure that the order of the states is correct
+    heapq.heappush(frontier, (0, 0, initial_state, []))
     explored = set()
     while frontier:
-        (cost, (_id, state, parent_actions)) = heapq.heappop(frontier)
+        (cost, _id, state, parent_actions) = heapq.heappop(frontier)
         if state in explored:
             continue
         explored.add(state)
@@ -76,7 +74,7 @@ def UniformCostSearch(problem: Problem[S, A], initial_state: S) -> Solution:
             current_child_actions = parent_actions.copy()
             current_child_actions.append(action)
             next_state = problem.get_successor(state, action)
-            heapq.heappush(frontier, (cost + problem.get_cost(state, action), (id, next_state, current_child_actions)))
+            heapq.heappush(frontier, (cost + problem.get_cost(state, action), id, next_state, current_child_actions))
             id += 1
     return None
 
@@ -88,4 +86,22 @@ def AStarSearch(problem: Problem[S, A], initial_state: S, heuristic: HeuristicFu
 
 def BestFirstSearch(problem: Problem[S, A], initial_state: S, heuristic: HeuristicFunction) -> Solution:
     # TODO: ADD YOUR CODE HERE
-    NotImplemented()
+    frontier = []
+    id = 1  # To prevent comparing states (Which causes an error) and to make sure that the order of insertion is preserved
+    heapq.heappush(frontier, (0, 0, initial_state, []))
+    explored = set()
+    while frontier:
+        (cost, _id, state, parent_actions) = heapq.heappop(frontier)
+        if state in explored:
+            continue
+        explored.add(state)
+        if problem.is_goal(state):
+            return parent_actions
+        actions = problem.get_actions(state)
+        for action in actions:
+            current_child_actions = parent_actions.copy()
+            current_child_actions.append(action)
+            next_state = problem.get_successor(state, action)
+            heapq.heappush(frontier, (heuristic(problem, next_state), id, next_state, current_child_actions))
+            id += 1
+    return None
