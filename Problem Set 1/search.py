@@ -83,7 +83,7 @@ def AStarSearch(problem: Problem[S, A], initial_state: S, heuristic: HeuristicFu
     # TODO: ADD YOUR CODE HERE
     frontier = []
     order = 1  # To prevent comparing states (Which causes an error) and to make sure that the order of insertion is preserved
-    heapq.heappush(frontier, (0, 0, initial_state, []))
+    heapq.heappush(frontier, (heuristic(problem, initial_state), 0, initial_state, []))
     explored = set()
     while frontier:
         (cost, _id, state, parent_actions) = heapq.heappop(frontier)
@@ -98,7 +98,8 @@ def AStarSearch(problem: Problem[S, A], initial_state: S, heuristic: HeuristicFu
             current_child_actions.append(action)
             next_state = problem.get_successor(state, action)
             heapq.heappush(frontier, (
-                heuristic(problem, next_state) + cost + problem.get_cost(state, action), order, next_state,
+                heuristic(problem, next_state) - heuristic(problem, state) + cost + problem.get_cost(state, action),
+                order, next_state,
                 current_child_actions))
             order += 1
     return None
@@ -108,7 +109,7 @@ def BestFirstSearch(problem: Problem[S, A], initial_state: S, heuristic: Heurist
     # TODO: ADD YOUR CODE HERE
     frontier = []
     order = 1  # To prevent comparing states (Which causes an error) and to make sure that the order of insertion is preserved
-    heapq.heappush(frontier, (0, 0, initial_state, []))
+    heapq.heappush(frontier, (0.0, 0, initial_state, []))
     explored = set()
     while frontier:
         (cost, _id, state, parent_actions) = heapq.heappop(frontier)
