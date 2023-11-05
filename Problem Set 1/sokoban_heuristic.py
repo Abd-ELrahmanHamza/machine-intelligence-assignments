@@ -14,12 +14,13 @@ def weak_heuristic(problem: SokobanProblem, state: SokobanState):
 
 # TODO: Import any modules and write any functions you want to use
 
-def flod_fill(layout: SokobanLayout) -> List[List[int]]:
+def flod_fill(layout: SokobanLayout, crates) -> (List[List[int]], List[List[int]]):
     area = layout.width * layout.height
-    graph = [[area for i in range(layout.width)] for j in range(layout.height)]
-    def bfs_flod_fill():
+
+    def bfs_flod_fill(goals: frozenset[Point]):
+        graph = [[area for i in range(layout.width)] for j in range(layout.height)]
         queue = deque()
-        for goal in layout.goals:
+        for goal in goals:
             queue.append(goal)
             graph[goal.y][goal.x] = 0
         while queue:
@@ -29,9 +30,10 @@ def flod_fill(layout: SokobanLayout) -> List[List[int]]:
                 if new_point in layout.walkable and graph[new_point.y][new_point.x] == area:
                     graph[new_point.y][new_point.x] = graph[point.y][point.x] + 1
                     queue.append(new_point)
-
-    bfs_flod_fill()
-    return graph
+        return graph
+    goals_graph = bfs_flod_fill(layout.goals)
+    crates_graph = bfs_flod_fill(crates)
+    return goals_graph, crates_graph
 
 
 def strong_heuristic(problem: SokobanProblem, state: SokobanState) -> float:
@@ -42,7 +44,22 @@ def strong_heuristic(problem: SokobanProblem, state: SokobanState) -> float:
     # NOTE: you can use problem.cache() to get a dictionary in which you can store information that will persist between calls of this function
     # This could be useful if you want to store the results heavy computations that can be cached and used across multiple calls of this function
     cache = problem.cache()
-    if 'graph' not in cache:
-        cache['graph'] = flod_fill(problem.layout)
-    graph = cache['graph']
-    return max(graph[crate.y][crate.x] for crate in state.crates)
+    if 'goals_graph' not in cache:
+        cache['goals_graph'], cache['crates_graph'] = flod_fill(problem.layout, state.crates)
+        # for l in cache['goals_graph']:
+        #     print(l)
+        # print()
+        # for l in cache['crates_graph']:
+        #     print(l)
+    goals_graph = cache['goals_graph']
+    crates_graph = cache['crates_graph']
+
+    # if player is surrounded by crates
+    surrounded_crate = False
+    for direction in Direction:
+        if state.player + direction.to_vector() in state.crates:
+            surrounded_crate = True
+            break
+    if surrounded_crate:
+        return max(goals_graph[crate.y][crate.x] for crate in state.crates)
+    return max(crates_graph[crate.y][crate.x] for crate in state.crates)
