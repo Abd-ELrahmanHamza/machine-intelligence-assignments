@@ -45,4 +45,4 @@ def strong_heuristic(problem: SokobanProblem, state: SokobanState) -> float:
     if 'graph' not in cache:
         cache['graph'] = flod_fill(problem.layout)
     graph = cache['graph']
-    return max(graph[crate.y][crate.x] for crate in state.crates)
+    return max(graph[crate.y][crate.x] for crate in state.crates) + min(manhattan_distance(state.player, crate) for crate in state.crates) - 1
