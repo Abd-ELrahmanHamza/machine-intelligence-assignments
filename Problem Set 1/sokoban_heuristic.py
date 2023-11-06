@@ -2,7 +2,7 @@ from collections import deque
 from typing import List
 
 from sokoban import SokobanProblem, SokobanState, SokobanLayout
-from mathutils import Direction, Point, manhattan_distance
+from mathutils import Direction, Point, manhattan_distance, euclidean_distance
 from helpers.utils import NotImplemented
 
 
@@ -17,6 +17,7 @@ def weak_heuristic(problem: SokobanProblem, state: SokobanState):
 def flod_fill(layout: SokobanLayout) -> List[List[int]]:
     area = layout.width * layout.height
     graph = [[area for i in range(layout.width)] for j in range(layout.height)]
+
     def bfs_flod_fill():
         queue = deque()
         for goal in layout.goals:
@@ -41,8 +42,9 @@ def strong_heuristic(problem: SokobanProblem, state: SokobanState) -> float:
     # which is the number of get_actions calls during the search
     # NOTE: you can use problem.cache() to get a dictionary in which you can store information that will persist between calls of this function
     # This could be useful if you want to store the results heavy computations that can be cached and used across multiple calls of this function
-    cache = problem.cache()
-    if 'graph' not in cache:
-        cache['graph'] = flod_fill(problem.layout)
-    graph = cache['graph']
-    return max(graph[crate.y][crate.x] for crate in state.crates) + min(manhattan_distance(state.player, crate) for crate in state.crates) - 1
+    # cache = problem.cache()
+    # if 'graph' not in cache:
+    #     cache['graph'] = flod_fill(problem.layout)
+    # graph = cache['graph']
+    return min(manhattan_distance(state.player, crate) for crate in state.crates) + sum(
+        [min([manhattan_distance(crate, goal) for goal in problem.layout.goals]) for crate in state.crates]) - 1
