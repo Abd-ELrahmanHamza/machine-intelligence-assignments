@@ -35,6 +35,24 @@ def flod_fill(layout: SokobanLayout) -> List[List[int]]:
     return graph
 
 
+def check_dead_lock(layout: SokobanLayout, state: SokobanState, problem: SokobanProblem) -> int:
+    for crate in state.crates:
+        wall_indices = []
+        for direction in Direction:
+            if crate in problem.layout.goals:
+                continue
+            wall = crate + direction.to_vector()
+            if wall not in layout.walkable:
+                wall_indices.append(direction.value)
+        wall_indices.sort()
+        for i in range(1, len(wall_indices)):
+            if wall_indices[i] - wall_indices[i - 1] == 1:
+                return 1
+        if len(wall_indices) >= 2 and wall_indices[-1] == 3 and wall_indices[0] == 0:
+            return 1
+    return 0
+
+
 def strong_heuristic(problem: SokobanProblem, state: SokobanState) -> float:
     # TODO: ADD YOUR CODE HERE
     # IMPORTANT: DO NOT USE "problem.get_actions" HERE.
@@ -46,5 +64,7 @@ def strong_heuristic(problem: SokobanProblem, state: SokobanState) -> float:
     # if 'graph' not in cache:
     #     cache['graph'] = flod_fill(problem.layout)
     # graph = cache['graph']
+    is_dead_lock = check_dead_lock(problem.layout, state, problem)
     return min(manhattan_distance(state.player, crate) for crate in state.crates) + sum(
-        [min([manhattan_distance(crate, goal) for goal in problem.layout.goals]) for crate in state.crates]) - 1
+        [min([manhattan_distance(crate, goal) for goal in problem.layout.goals]) for crate in
+         state.crates]) - 1 + 100 * is_dead_lock
