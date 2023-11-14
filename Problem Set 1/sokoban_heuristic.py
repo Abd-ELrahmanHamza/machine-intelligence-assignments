@@ -1,3 +1,4 @@
+import heapq
 from collections import deque
 from typing import List
 
@@ -14,24 +15,37 @@ def weak_heuristic(problem: SokobanProblem, state: SokobanState):
 
 # TODO: Import any modules and write any functions you want to use
 
-def flod_fill(layout: SokobanLayout) -> List[List[int]]:
-    area = 100000
-    graph = [[area for i in range(layout.width)] for j in range(layout.height)]
+def bfs_flod_fill(goal: Point, width: int, height: int, walkable: set[Point]):
+    area = width * height
+    graph = [[area for i in range(width)] for j in range(height)]
+    queue = deque()
+    queue.append(goal)
+    graph[goal.y][goal.x] = 0
+    while queue:
+        point = queue.popleft()
+        for direction in Direction:
+            new_point = point + direction.to_vector()
+            if new_point in walkable and graph[new_point.y][new_point.x] == area:
+                graph[new_point.y][new_point.x] = round(graph[point.y][point.x] + 0.2, 3)
+                queue.append(new_point)
+    return graph
 
-    def bfs_flod_fill():
-        queue = deque()
-        for goal in layout.goals:
-            queue.append(goal)
-            graph[goal.y][goal.x] = 0
-        while queue:
-            point = queue.popleft()
-            for direction in Direction:
-                new_point = point + direction.to_vector()
-                if new_point in layout.walkable and graph[new_point.y][new_point.x] == area:
-                    graph[new_point.y][new_point.x] = (graph[point.y][point.x] + 1)
-                    queue.append(new_point)
 
-    bfs_flod_fill()
+def flod_fill(layout: SokobanLayout) -> dict[Point, list[list[int]]]:
+    graph = {}
+    for goal in layout.goals:
+        graph[goal] = bfs_flod_fill(goal, layout.width, layout.height, layout.walkable)
+    return graph
+
+
+def flod_fill_crates(layout: SokobanLayout, state: SokobanState) -> dict[Point, list[list[int]]]:
+    graph = {}
+    for crate in state.crates:
+        walkable = set(layout.walkable)
+        for crate_ in state.crates:
+            if crate != crate_:
+                walkable.remove(crate_)
+        graph[crate] = bfs_flod_fill(crate, layout.width, layout.height, walkable)
     return graph
 
 
@@ -53,6 +67,50 @@ def check_dead_lock(layout: SokobanLayout, state: SokobanState, problem: Sokoban
     return 0
 
 
+def compute_cost(graph: dict[Point, list[list[int]]], state: SokobanState, problem: SokobanProblem) -> int:
+    cost = 0
+    cost_queue = []
+    dummy = 0
+    for crate in state.crates:
+        for goal in problem.layout.goals:
+            heapq.heappush(cost_queue, (graph[goal][crate.y][crate.x], dummy, crate, goal))
+            dummy += 1
+    current_goals = set(problem.layout.goals)
+    current_crates = set(state.crates)
+    while cost_queue:
+        (c, dummy, crate, goal) = heapq.heappop(cost_queue)
+        if goal in current_goals and crate in current_crates:
+            cost += c
+            current_goals.remove(goal)
+            current_crates.remove(crate)
+            # print(goal, crate, c)
+    # print("cost: ", cost)
+    return cost
+
+
+def compute_cost_crates(state: SokobanState, problem: SokobanProblem) -> int:
+    graph: dict[Point, list[list[int]]] = flod_fill_crates(problem.layout, state)
+    cost = 0
+    cost_queue = []
+    dummy = 0
+    for goal in problem.layout.goals:
+        for crate in state.crates:
+            heapq.heappush(cost_queue, (graph[crate][goal.y][goal.x], dummy, crate, goal))
+            dummy += 1
+    # print("cost_queue: ", cost_queue)
+    current_goals = set(problem.layout.goals)
+    current_crates = set(state.crates)
+    while cost_queue:
+        (c, dummy, crate, goal) = heapq.heappop(cost_queue)
+        if goal in current_goals and crate in current_crates:
+            cost += c
+            current_goals.remove(goal)
+            current_crates.remove(crate)
+            # print(goal, crate, c)
+    # print("cost: ", cost)
+    return cost
+
+
 def strong_heuristic(problem: SokobanProblem, state: SokobanState) -> float:
     # TODO: ADD YOUR CODE HERE
     # IMPORTANT: DO NOT USE "problem.get_actions" HERE.
@@ -63,13 +121,18 @@ def strong_heuristic(problem: SokobanProblem, state: SokobanState) -> float:
     cache = problem.cache()
     if 'graph' not in cache:
         cache['graph'] = flod_fill(problem.layout)
-        # for l in cache['graph']:
-        #     print(l)
+        # for goal in problem.layout.goals:
+        #     for l in cache['graph'][goal]:
+        #         print(l)
+        #     print()
     graph = cache['graph']
+
     is_dead_lock = check_dead_lock(problem.layout, state, problem)
     res = 10000 * is_dead_lock
-    res += sum(graph[crate.y][crate.x] for crate in state.crates)
-    res += (min(manhattan_distance(state.player, crate) for crate in state.crates) - 1)
+    # res += sum(graph[crate.y][crate.x] for crate in state.crates)
+    # res += (min(manhattan_distance(state.player, crate) for crate in state.crates) - 1)
+    res += compute_cost(graph, state, problem)
+    # res += compute_cost_crates(state, problem)
     # res += sum([min([manhattan_distance(crate, goal) for goal in problem.layout.goals]) for crate in state.crates])
     # res += sum([min([euclidean_distance(crate, goal) for goal in problem.layout.goals]) for crate in state.crates])
     return res
