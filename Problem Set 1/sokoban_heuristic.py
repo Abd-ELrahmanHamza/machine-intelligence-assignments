@@ -14,12 +14,94 @@ def weak_heuristic(problem: SokobanProblem, state: SokobanState):
 
 # TODO: Import any modules and write any functions you want to use
 
+# A function that perform bfs from a given point to a given point
+# Sets all path to the goal to 0 and all other points to the maximum value
+def bfs(start: Point, goal: Point, layout: SokobanLayout) -> List[int]:
+    visited = [[0 for i in range(layout.width)] for j in range(layout.height)]
+    queue = deque()
+    visited[start.y][start.x] = 0
+    queue.append((start, [start]))
+    while queue:
+        (point, path) = queue.popleft()
+        for direction in Direction:
+            new_point = point + direction.to_vector()
+            if new_point in layout.walkable and visited[new_point.y][new_point.x] == 0:
+                visited[new_point.y][new_point.x] = 1
+                queue.append((new_point, [new_point] + path))
+                if new_point == goal:
+                    return [new_point] + path
+    return []
+
+
+def calc_cost_zero_max(problem: SokobanProblem, state: SokobanState, graph: dict[Point, List[List[int]]]) -> List[
+    List[int]]:
+    current_goals = set(problem.layout.goals)
+    current_crates = set(state.crates)
+    result_graph = [[1000 for i in range(problem.layout.width)] for j in range(problem.layout.height)]
+    for goal in current_goals:
+        closest_crate = None
+        closest_crate_distance = 10000
+        for crate in current_crates:
+            if graph[goal][crate.y][crate.x] < closest_crate_distance:
+                closest_crate_distance = graph[goal][crate.y][crate.x]
+                closest_crate = crate
+        path = bfs(closest_crate, goal, problem.layout)
+        start = 0.1
+        for point in path:
+            result_graph[point.y][point.x] = start
+            # start += 0.1
+        current_crates.remove(closest_crate)
+    for crate in state.crates:
+        other_crates = set(state.crates)
+        other_crates.remove(crate)
+        for direction in Direction:
+            new_point = crate + direction.to_vector()
+            if new_point + Direction.LEFT.to_vector() in problem.layout.walkable:
+                result_graph[new_point.y][new_point.x - 1] = 0.1
+            if new_point + Direction.RIGHT.to_vector() in problem.layout.walkable:
+                result_graph[new_point.y][new_point.x + 1] = 0.1
+            if new_point not in problem.layout.walkable or new_point in other_crates:
+                result_graph[new_point.y][new_point.x] = 0.1
+                for direction2 in Direction:
+                    new_point2 = new_point + direction2.to_vector()
+                    if new_point2 in problem.layout.walkable:
+                        result_graph[new_point2.y][new_point2.x] = 0.1
+    for goal in problem.layout.goals:
+        result_graph[goal.y][goal.x] = 0
+    print()
+    for i in range(problem.layout.height):
+        for j in range(problem.layout.width):
+            if result_graph[i][j] == 1000:
+                print("#", end="")
+            else:
+                print(".", end="")
+        print()
+    return result_graph
+
+
 def bfs_flod_fill(goal: Point, layout: SokobanLayout) -> List[List[int]]:
     area = layout.width * layout.height
     graph = [[area for i in range(layout.width)] for j in range(layout.height)]
     queue = deque()
     graph[goal.y][goal.x] = 0
     queue.append(goal)
+    while queue:
+        point = queue.popleft()
+        for direction in Direction:
+            new_point = point + direction.to_vector()
+            if new_point in layout.walkable and graph[new_point.y][new_point.x] == area:
+                graph[new_point.y][new_point.x] = graph[point.y][point.x] + 1
+                queue.append(new_point)
+    return graph
+
+
+def bfs_flod_fill_all(layout: SokobanLayout) -> List[List[int]]:
+    area = layout.width * layout.height
+    graph = [[area for i in range(layout.width)] for j in range(layout.height)]
+    queue = deque()
+    for goal in layout.goals:
+        graph[goal.y][goal.x] = 0
+        queue.append(goal)
     while queue:
         point = queue.popleft()
         for direction in Direction:
@@ -79,10 +161,17 @@ def strong_heuristic(problem: SokobanProblem, state: SokobanState) -> float:
     cache = problem.cache()
     if 'graph' not in cache:
         cache['graph'] = flod_fill_goals(problem.layout)
+        cache['graph_zero_max'] = calc_cost_zero_max(problem, state, cache['graph'])
+        cache['graph_all'] = bfs_flod_fill_all(problem.layout)
+        # for l in cache['graph_zero_max']:
+        #     print(l)
     graph = cache['graph']
+    graph_all = cache['graph_all']
+    graph_zero_max = cache['graph_zero_max']
     is_dead_lock = check_dead_lock(problem.layout, state)
     # return min(manhattan_distance(state.player, crate) for crate in state.crates) + sum(
     #     [min([manhattan_distance(crate, goal) for goal in problem.layout.goals]) for crate in
     #      state.crates]) - 1 + 100 * is_dead_lock
-    return get_cost(problem, state, graph) + min(
-        manhattan_distance(state.player, crate) for crate in state.crates) - 1 + 10000 * is_dead_lock
+    # return max(sum(graph_zero_max[crate.y][crate.x] for crate in state.crates),
+    #            sum(graph_all[crate.y][crate.x] for crate in state.crates)) + 10000 * is_dead_lock
+    return sum(graph_zero_max[crate.y][crate.x] for crate in state.crates) + 10000 * is_dead_lock
