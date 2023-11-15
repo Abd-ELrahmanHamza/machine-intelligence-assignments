@@ -50,6 +50,64 @@ def check_dead_lock(layout: SokobanLayout, state: SokobanState, problem: Sokoban
                 return 1
         if len(wall_indices) >= 2 and wall_indices[-1] == 3 and wall_indices[0] == 0:
             return 1
+    for crate in state.crates:
+        # Check if crate is beside maze outer walls
+        if crate.x == 1 or crate.x == layout.width - 2:
+            # check if there is a crate left or right to it
+            if (
+                    crate + Direction.LEFT.to_vector() in state.crates) and (
+                    crate + Direction.LEFT.to_vector() not in layout.goals or crate not in layout.goals):
+                return 1
+            if (
+                    crate + Direction.RIGHT.to_vector() in state.crates) and (
+                    crate + Direction.RIGHT.to_vector() not in layout.goals or crate not in layout.goals):
+                return 1
+        if crate.y == 1 or crate.y == layout.height - 2:
+            # check if there is a crate up or down to it
+            if (
+                    crate + Direction.UP.to_vector() in state.crates) and (
+                    crate + Direction.UP.to_vector() not in layout.goals or crate not in layout.goals):
+                return 1
+            if (
+                    crate + Direction.DOWN.to_vector() in state.crates) and (
+                    crate + Direction.DOWN.to_vector() not in layout.goals or crate not in layout.goals):
+                return 1
+    # get number of crates beside each left wall
+    left_wall_crates = []
+    right_wall_crates = []
+    upper_wall_crates = []
+    lower_wall_crates = []
+    for crate in state.crates:
+        if crate.x == 1:
+            left_wall_crates.append(crate)
+        if crate.x == layout.width - 2:
+            right_wall_crates.append(crate)
+        if crate.y == 1:
+            upper_wall_crates.append(crate)
+        if crate.y == layout.height - 2:
+            lower_wall_crates.append(crate)
+    left_wall_goals = []
+    right_wall_goals = []
+    upper_wall_goals = []
+    lower_wall_goals = []
+    for goal in layout.goals:
+        if goal.x == 1:
+            left_wall_goals.append(goal)
+        if goal.x == layout.width - 2:
+            right_wall_goals.append(goal)
+        if goal.y == 1:
+            upper_wall_goals.append(goal)
+        if goal.y == layout.height - 2:
+            lower_wall_goals.append(goal)
+    if len(left_wall_crates) > len(left_wall_goals):
+        return 1
+    if len(right_wall_crates) > len(right_wall_goals):
+        return 1
+    if len(upper_wall_crates) > len(upper_wall_goals):
+        return 1
+    if len(lower_wall_crates) > len(lower_wall_goals):
+        return 1
+
     return 0
 
 
@@ -63,8 +121,6 @@ def strong_heuristic(problem: SokobanProblem, state: SokobanState) -> float:
     cache = problem.cache()
     if 'graph' not in cache:
         cache['graph'] = flod_fill(problem.layout)
-        # for l in cache['graph']:
-        #     print(l)
     graph = cache['graph']
     is_dead_lock = check_dead_lock(problem.layout, state, problem)
     res = 10000 * is_dead_lock
