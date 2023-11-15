@@ -1,5 +1,5 @@
 from collections import deque
-from typing import List, Dict
+from typing import List
 
 from sokoban import SokobanProblem, SokobanState, SokobanLayout
 from mathutils import Direction, Point, manhattan_distance, euclidean_distance
@@ -14,90 +14,100 @@ def weak_heuristic(problem: SokobanProblem, state: SokobanState):
 
 # TODO: Import any modules and write any functions you want to use
 
-def bfs_flod_fill(goal: Point, layout: SokobanLayout) -> List[List[int]]:
-    area = layout.width * layout.height
+def flod_fill(layout: SokobanLayout) -> List[List[int]]:
+    area = 100000
     graph = [[area for i in range(layout.width)] for j in range(layout.height)]
-    queue = deque()
-    graph[goal.y][goal.x] = 0
-    queue.append(goal)
-    while queue:
-        point = queue.popleft()
-        for direction in Direction:
-            new_point = point + direction.to_vector()
-            if new_point in layout.walkable and graph[new_point.y][new_point.x] == area:
-                graph[new_point.y][new_point.x] = graph[point.y][point.x] + 1
-                queue.append(new_point)
+
+    def bfs_flod_fill():
+        queue = deque()
+        for goal in layout.goals:
+            queue.append(goal)
+            graph[goal.y][goal.x] = 0
+        while queue:
+            point = queue.popleft()
+            for direction in Direction:
+                new_point = point + direction.to_vector()
+                if new_point in layout.walkable and graph[new_point.y][new_point.x] == area:
+                    graph[new_point.y][new_point.x] = (graph[point.y][point.x] + 1)
+                    queue.append(new_point)
+
+    bfs_flod_fill()
     return graph
 
 
-def flod_fill_goals(layout: SokobanLayout) -> dict[Point, List[List[int]]]:
-    goals_graphs = {}
-    for goal in layout.goals:
-        graph = bfs_flod_fill(goal, layout)
-        goals_graphs[goal] = graph
-    return goals_graphs
-
-
-def get_cost(goals_graphs: dict[Point, List[List[int]]], state: SokobanState, problem: SokobanProblem) -> int:
-    # get list of (cost, goal,crate) for each crate
-    empty_goals = set(problem.layout.goals)
-    empty_crates = set(state.crates)
-    for goal in problem.layout.goals:
-        for crate in state.crates:
-            if crate == goal:
-                empty_goals.remove(goal)
-                empty_crates.remove(crate)
-                break
-    costs = []
-    for goal in empty_goals:
-        for crate in empty_crates:
-            costs.append((goals_graphs[goal][crate.y][crate.x], goal, crate))
-    if len(costs) == 0:
-        print("same cost is empty goal")
-        return 0
-    # sort list by cost if equal sort by nearest goal to the player
-    costs.sort(
-        key=lambda x: (x[0], manhattan_distance(Point(0, 0), x[1]), goals_graphs[x[1]][state.player.y][state.player.x]))
-    # get list of items that have the same cost and goal point
-    same_cost = [costs[0]]
-    for i in range(len(costs) - 1):
-        if costs[i][0] == costs[i + 1][0] and costs[i][1] == costs[i + 1][1]:
-            same_cost.append(costs[i + 1])
-        else:
-            break
-    # get a dictionary of (crate,flod_fill) for each crate
-    crate_graphs = {}
-    for item in same_cost:
-        crate_graphs[item[2]] = bfs_flod_fill(item[2], problem.layout)
-    # get the crate at which the player has the least flood fill to reach
-    min_cost = 100000
-    min_crate = None
-    for crate in empty_crates:
-        if crate not in crate_graphs:
-            continue
-        cost = crate_graphs[crate][state.player.y][state.player.x]
-        if cost < min_cost:
-            min_cost = cost
-            min_crate = crate
-    if len(same_cost) == 0 and len(costs) > 0:
-        return min_cost - 1
-    print("min_crate = ", min_crate)
-    # return the cost of the crate with the least flood fill added to the cost of the goal
-    return min_cost - 1 + goals_graphs[same_cost[0][1]][min_crate.y][min_crate.x]
-
-
-def check_dead_lock(layout: SokobanLayout, state: SokobanState):
+def check_dead_lock(layout: SokobanLayout, state: SokobanState, problem: SokobanProblem) -> int:
     for crate in state.crates:
         wall_indices = []
         for direction in Direction:
-            if crate + direction.to_vector() not in layout.walkable:
+            if crate in problem.layout.goals:
+                continue
+            wall = crate + direction.to_vector()
+            if wall not in layout.walkable:
                 wall_indices.append(direction.value)
         wall_indices.sort()
         for i in range(1, len(wall_indices)):
             if wall_indices[i] - wall_indices[i - 1] == 1:
-                return 0
+                return 1
         if len(wall_indices) >= 2 and wall_indices[-1] == 3 and wall_indices[0] == 0:
             return 1
+    for crate in state.crates:
+        # Check if crate is beside maze outer walls
+        if crate.x == 1 or crate.x == layout.width - 2:
+            # check if there is a crate left or right to it
+            if (
+                    crate + Direction.LEFT.to_vector() in state.crates) and (
+                    crate + Direction.LEFT.to_vector() not in layout.goals or crate not in layout.goals):
+                return 1
+            if (
+                    crate + Direction.RIGHT.to_vector() in state.crates) and (
+                    crate + Direction.RIGHT.to_vector() not in layout.goals or crate not in layout.goals):
+                return 1
+        if crate.y == 1 or crate.y == layout.height - 2:
+            # check if there is a crate up or down to it
+            if (
+                    crate + Direction.UP.to_vector() in state.crates) and (
+                    crate + Direction.UP.to_vector() not in layout.goals or crate not in layout.goals):
+                return 1
+            if (
+                    crate + Direction.DOWN.to_vector() in state.crates) and (
+                    crate + Direction.DOWN.to_vector() not in layout.goals or crate not in layout.goals):
+                return 1
+    # get number of crates beside each left wall
+    left_wall_crates = []
+    right_wall_crates = []
+    upper_wall_crates = []
+    lower_wall_crates = []
+    for crate in state.crates:
+        if crate.x == 1:
+            left_wall_crates.append(crate)
+        if crate.x == layout.width - 2:
+            right_wall_crates.append(crate)
+        if crate.y == 1:
+            upper_wall_crates.append(crate)
+        if crate.y == layout.height - 2:
+            lower_wall_crates.append(crate)
+    left_wall_goals = []
+    right_wall_goals = []
+    upper_wall_goals = []
+    lower_wall_goals = []
+    for goal in layout.goals:
+        if goal.x == 1:
+            left_wall_goals.append(goal)
+        if goal.x == layout.width - 2:
+            right_wall_goals.append(goal)
+        if goal.y == 1:
+            upper_wall_goals.append(goal)
+        if goal.y == layout.height - 2:
+            lower_wall_goals.append(goal)
+    if len(left_wall_crates) > len(left_wall_goals):
+        return 1
+    if len(right_wall_crates) > len(right_wall_goals):
+        return 1
+    if len(upper_wall_crates) > len(upper_wall_goals):
+        return 1
+    if len(lower_wall_crates) > len(lower_wall_goals):
+        return 1
+
     return 0
 
 
@@ -110,7 +120,12 @@ def strong_heuristic(problem: SokobanProblem, state: SokobanState) -> float:
     # This could be useful if you want to store the results heavy computations that can be cached and used across multiple calls of this function
     cache = problem.cache()
     if 'graph' not in cache:
-        cache['graph'] = flod_fill_goals(problem.layout)
+        cache['graph'] = flod_fill(problem.layout)
     graph = cache['graph']
-    is_dead_lock = check_dead_lock(problem.layout, state)
-    return get_cost(graph, state, problem) + 1000 * is_dead_lock
+    is_dead_lock = check_dead_lock(problem.layout, state, problem)
+    res = 10000 * is_dead_lock
+    res += sum(graph[crate.y][crate.x] for crate in state.crates)
+    res += (min(manhattan_distance(state.player, crate) for crate in state.crates) - 1)
+    # res += sum([min([manhattan_distance(crate, goal) for goal in problem.layout.goals]) for crate in state.crates])
+    # res += sum([min([euclidean_distance(crate, goal) for goal in problem.layout.goals]) for crate in state.crates])
+    return res
