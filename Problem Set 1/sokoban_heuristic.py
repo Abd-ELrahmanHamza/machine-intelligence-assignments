@@ -36,6 +36,7 @@ def flod_fill(layout: SokobanLayout) -> List[List[int]]:
 
 
 def check_dead_lock(layout: SokobanLayout, state: SokobanState, problem: SokobanProblem) -> int:
+    # Check if crate is in corner and not on goal
     for crate in state.crates:
         wall_indices = []
         for direction in Direction:
@@ -45,13 +46,15 @@ def check_dead_lock(layout: SokobanLayout, state: SokobanState, problem: Sokoban
             if wall not in layout.walkable:
                 wall_indices.append(direction.value)
         wall_indices.sort()
+        # Check if crate is in corner (Two adjacent walls beside it)
         for i in range(1, len(wall_indices)):
             if wall_indices[i] - wall_indices[i - 1] == 1:
                 return 1
         if len(wall_indices) >= 2 and wall_indices[-1] == 3 and wall_indices[0] == 0:
             return 1
+    # Check case if crate is between a wall and another crate
     for crate in state.crates:
-        # Check if crate is beside maze outer walls
+        # Check if crate is beside maze outer walls and not on goal
         if crate.x == 1 or crate.x == layout.width - 2:
             # check if there is a crate left or right to it
             if (
@@ -63,7 +66,7 @@ def check_dead_lock(layout: SokobanLayout, state: SokobanState, problem: Sokoban
                     crate + Direction.RIGHT.to_vector() not in layout.goals or crate not in layout.goals):
                 return 1
         if crate.y == 1 or crate.y == layout.height - 2:
-            # check if there is a crate up or down to it
+            # check if there is a crate up or down to it and not on goal
             if (
                     crate + Direction.UP.to_vector() in state.crates) and (
                     crate + Direction.UP.to_vector() not in layout.goals or crate not in layout.goals):
@@ -72,7 +75,9 @@ def check_dead_lock(layout: SokobanLayout, state: SokobanState, problem: Sokoban
                     crate + Direction.DOWN.to_vector() in state.crates) and (
                     crate + Direction.DOWN.to_vector() not in layout.goals or crate not in layout.goals):
                 return 1
-    # get number of crates beside each left wall
+    # Check the number of crates beside each wall
+    # If the number of crates is more than the number of goals beside the wall then it is a deadlock
+    # get number of crates beside each wall
     left_wall_crates = []
     right_wall_crates = []
     upper_wall_crates = []
@@ -86,6 +91,7 @@ def check_dead_lock(layout: SokobanLayout, state: SokobanState, problem: Sokoban
             upper_wall_crates.append(crate)
         if crate.y == layout.height - 2:
             lower_wall_crates.append(crate)
+    # get number of goals beside each wall
     left_wall_goals = []
     right_wall_goals = []
     upper_wall_goals = []
@@ -99,6 +105,7 @@ def check_dead_lock(layout: SokobanLayout, state: SokobanState, problem: Sokoban
             upper_wall_goals.append(goal)
         if goal.y == layout.height - 2:
             lower_wall_goals.append(goal)
+    # Check if the number of crates beside each wall is more than the number of goals beside the wall
     if len(left_wall_crates) > len(left_wall_goals):
         return 1
     if len(right_wall_crates) > len(right_wall_goals):
@@ -123,7 +130,7 @@ def strong_heuristic(problem: SokobanProblem, state: SokobanState) -> float:
         cache['graph'] = flod_fill(problem.layout)
     graph = cache['graph']
     is_dead_lock = check_dead_lock(problem.layout, state, problem)
-    res = 10000 * is_dead_lock
+    res = 100000000 * is_dead_lock
     res += sum(graph[crate.y][crate.x] for crate in state.crates)
     res += (min(manhattan_distance(state.player, crate) for crate in state.crates) - 1)
     # res += sum([min([manhattan_distance(crate, goal) for goal in problem.layout.goals]) for crate in state.crates])
