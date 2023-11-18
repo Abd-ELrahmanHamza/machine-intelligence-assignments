@@ -76,23 +76,33 @@ def DepthFirstSearch(problem: Problem[S, A], initial_state: S) -> Solution:
 
 def UniformCostSearch(problem: Problem[S, A], initial_state: S) -> Solution:
     # TODO: ADD YOUR CODE HERE
+    # frontier is a priority queue of (cost, state, actions) tuples
     frontier = []
     order = 1  # To prevent comparing states (Which causes an error) and to make sure that the order of the states is correct
     heapq.heappush(frontier, (0, 0, initial_state, []))
+    # explored is a set of states
     explored = set()
     while frontier:
+        # Get the first element from the frontier
         (cost, _id, state, parent_actions) = heapq.heappop(frontier)
+        # Check if the state has been explored before
         if state in explored:
             continue
+        # Add the state to the explored set
         explored.add(state)
+        # Check if the state is the goal state
         if problem.is_goal(state):
             return parent_actions
+        # Get the actions that can be applied to the current state
         actions = problem.get_actions(state)
         for action in actions:
             current_child_actions = parent_actions.copy()
             current_child_actions.append(action)
+            # Get the next state by applying the action to the current state
             next_state = problem.get_successor(state, action)
+            # Add the next state to the frontier
             heapq.heappush(frontier, (cost + problem.get_cost(state, action), order, next_state, current_child_actions))
+            # Increment the order
             order += 1
     return None
 
