@@ -16,21 +16,30 @@ import heapq
 
 def BreadthFirstSearch(problem: Problem[S, A], initial_state: S) -> Solution:
     # TODO: ADD YOUR CODE HERE
+    # frontier is a queue of (state, actions) tuples
     frontier = deque()
     frontier.append((initial_state, []))
+    # explored is a set of states
     explored = set()
     while frontier:
+        # Get the first element from the frontier
         (state, parent_actions) = frontier.popleft()
+        # Check if the state has been explored before
         if state in explored:
             continue
+        # Add the state to the explored set
         explored.add(state)
+        # Get the actions that can be applied to the current state
         actions = problem.get_actions(state)
         for action in actions:
             current_child_actions = parent_actions.copy()
             current_child_actions.append(action)
+            # Get the next state by applying the action to the current state
             next_state = problem.get_successor(state, action)
+            # Check if the next state is the goal state
             if problem.is_goal(next_state):
                 return current_child_actions
+            # Add the next state to the frontier
             frontier.append((next_state, current_child_actions))
     return None
 
