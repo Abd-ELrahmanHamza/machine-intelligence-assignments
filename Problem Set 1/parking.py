@@ -35,12 +35,14 @@ class ParkingProblem(Problem[ParkingState, ParkingAction]):
     # This function should return the initial state
     def get_initial_state(self) -> ParkingState:
         # TODO: ADD YOUR CODE HERE
+        # The initial state is the cars positions
         initial_state: ParkingState = self.cars
         return initial_state
 
     # This function should return True if the given state is a goal. Otherwise, it should return False.
     def is_goal(self, state: ParkingState) -> bool:
         # TODO: ADD YOUR CODE HERE
+        # Check if all cars are in their parking slots
         for car_index, car in enumerate(state):
             if car not in self.slots:
                 return False
@@ -62,9 +64,11 @@ class ParkingProblem(Problem[ParkingState, ParkingAction]):
     # This function returns a list of all the possible actions that can be applied to the given state
     def get_actions(self, state: ParkingState) -> List[ParkingAction]:
         # TODO: ADD YOUR CODE HERE
+        # Get all the available actions for each car
         available_actions: List[ParkingAction] = []
         for car_index, car in enumerate(state):
             for direction in Direction:
+                # Check if the car can move in the given direction
                 if self.is_valid_move(car, direction, state):
                     available_actions.append((car_index, direction))
         return available_actions
