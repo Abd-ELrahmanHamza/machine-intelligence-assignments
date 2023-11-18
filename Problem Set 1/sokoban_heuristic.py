@@ -18,6 +18,9 @@ def flod_fill(layout: SokobanLayout) -> List[List[int]]:
     area = 100000
     graph = [[area for i in range(layout.width)] for j in range(layout.height)]
 
+    # BFS flood fill from goals to determine the smallest distance from each goal to each point in the layout
+    # This will be used to determine the distance from each crate to the nearest goal
+    # This is the actual distance not only the manhattan distance
     def bfs_flod_fill():
         queue = deque()
         for goal in layout.goals:
