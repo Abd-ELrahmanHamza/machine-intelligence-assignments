@@ -15,7 +15,7 @@ def weak_heuristic(problem: SokobanProblem, state: SokobanState):
 # TODO: Import any modules and write any functions you want to use
 
 def flod_fill(layout: SokobanLayout) -> List[List[int]]:
-    area = 100000
+    area = 1000000000
     graph = [[area for i in range(layout.width)] for j in range(layout.height)]
 
     # BFS flood fill from goals to determine the smallest distance from each goal to each point in the layout
@@ -133,7 +133,7 @@ def strong_heuristic(problem: SokobanProblem, state: SokobanState) -> float:
         cache['graph'] = flod_fill(problem.layout)
     graph = cache['graph']
     is_dead_lock = check_dead_lock(problem.layout, state, problem)
-    res = 100000000 * is_dead_lock
+    res = 1000000000 * is_dead_lock
     res += sum(graph[crate.y][crate.x] for crate in state.crates)
     res += (min(manhattan_distance(state.player, crate) for crate in state.crates) - 1)
     # res += sum([min([manhattan_distance(crate, goal) for goal in problem.layout.goals]) for crate in state.crates])
