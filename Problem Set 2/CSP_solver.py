@@ -95,12 +95,13 @@ def least_restraining_values(problem: Problem, variable_to_assign: str, domains:
             if other_variable not in domains:
                 continue
             # get the other variable's domain
-            new_domain = {value for value in domains[other_variable] if constraint.condition(value, value)}
+            new_domain = {other_var_value for other_var_value in domains[other_variable] if
+                          constraint.condition(value, other_var_value)}
             domain_size += len(new_domain)
         # add the value and its domain size to the list
         restraining_values.append((domain_size, value))
     # sort the list
-    restraining_values.sort()
+    restraining_values.sort(key=lambda x: x[0],reverse=True)
     # return the values only
     return [value for _, value in restraining_values]
 
