@@ -101,7 +101,7 @@ def least_restraining_values(problem: Problem, variable_to_assign: str, domains:
         # add the value and its domain size to the list
         restraining_values.append((domain_size, value))
     # sort the list
-    restraining_values.sort(key=lambda x: x[0],reverse=True)
+    restraining_values.sort(key=lambda x: (x[0], -x[1]), reverse=True)
     # return the values only
     return [value for _, value in restraining_values]
 
@@ -127,24 +127,24 @@ def solve(problem: Problem) -> Optional[Assignment]:
 
 def backtracking_search(problem: Problem, domains: Dict[str, set], assignment: Assignment) -> Optional[Assignment]:
     # Check if the assignment is complete
-    if problem.is_complete(domains):
+    if problem.is_complete(assignment):
         return assignment
     # Select the variable to assign next
     variable_to_assign = minimum_remaining_values(problem, domains)
     # Get the values of the variable in the order of the least constraining value heuristic
     values = least_restraining_values(problem, variable_to_assign, domains)
+    # Pop the variable from the domains so that it is not considered in the future
+    domains.pop(variable_to_assign)
     # Try assigning each value
     for value in values:
-        # Create a copy of the domains to be used by forward checking
-        domains = domains.copy()
-        # Assign the value to the variable and remove it from the domains
-        domains.pop(variable_to_assign)
+        # Create a copy of the domains
+        new_domains = domains.copy()
         # Add the assignment to the assignment
         assignment[variable_to_assign] = value
         # Apply forward checking
-        if forward_checking(problem, variable_to_assign, value, domains):
+        if forward_checking(problem, variable_to_assign, value, new_domains):
             # If forward checking succeeds, solve the problem recursively
-            solution = backtracking_search(problem, domains, assignment)
+            solution = backtracking_search(problem, new_domains, assignment.copy())
             if solution is not None:
                 return solution
     # If no solution was found, return None
