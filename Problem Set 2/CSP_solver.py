@@ -61,7 +61,14 @@ def forward_checking(problem: Problem, assigned_variable: str, assigned_value: A
         if other_variable not in domains:
             continue
         # Update the other variable's domain
-        new_domain = {value for value in domains[other_variable] if constraint.condition(assigned_value, value)}
+        new_domain = set()
+        for value in domains[other_variable]:
+            if assigned_variable == constraint.variables[0]:
+                if constraint.condition(assigned_value, value):
+                    new_domain.add(value)
+            else:
+                if constraint.condition(value, assigned_value):
+                    new_domain.add(value)
         if not new_domain:
             return False
         domains[other_variable] = new_domain
@@ -74,9 +81,9 @@ def forward_checking(problem: Problem, assigned_variable: str, assigned_value: A
 #   - You are not given a value for the given variable, since you should do the process for every value in the variable's
 #     domain to see how much it will restrain the neigbors domain
 #   - Here, you do not modify the given domains. But you can create and modify a copy.
-# IMPORTANT: If multiple values have the same priority given the "least restraining value" heuristic, 
+# IMPORTANT: If multiple values have the same priority given the "least restraining value" heuristic,
 #            order them in ascending order (from the lowest to the highest value).
-# IMPORTANT: Don't use the domains inside the problem, use and modify the ones given by the "domains" argument 
+# IMPORTANT: Don't use the domains inside the problem, use and modify the ones given by the "domains" argument
 #            since they contain the current domains of unassigned variables only.
 def least_restraining_values(problem: Problem, variable_to_assign: str, domains: Dict[str, set]) -> List[Any]:
     # TODO: Write this function
@@ -95,8 +102,14 @@ def least_restraining_values(problem: Problem, variable_to_assign: str, domains:
             if other_variable not in domains:
                 continue
             # get the other variable's domain
-            new_domain = {other_var_value for other_var_value in domains[other_variable] if
-                          constraint.condition(value, other_var_value)}
+            new_domain = set()
+            for other_var_value in domains[other_variable]:
+                if variable_to_assign == constraint.variables[0]:
+                    if constraint.condition(value, other_var_value):
+                        new_domain.add(other_var_value)
+                else:
+                    if constraint.condition(other_var_value, value):
+                        new_domain.add(other_var_value)
             domain_size += len(new_domain)
         # add the value and its domain size to the list
         restraining_values.append((domain_size, value))
