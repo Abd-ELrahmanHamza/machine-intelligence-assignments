@@ -93,11 +93,47 @@ def alphabeta(game: Game[S, A], state: S, heuristic: HeuristicFunction, max_dept
     return alphabeta_recursive(game, state, heuristic, max_depth)
 
 
+def alphabeta_with_move_ordering_recursive(game: Game[S, A], state: S, heuristic: HeuristicFunction, max_depth: int = -1,
+                                           alpha: float = float('-inf'),
+                                           beta: float = float('inf')) -> Tuple[float, A]:
+    is_terminal_state = game.is_terminal(state)
+    if max_depth == 0:
+        return heuristic(game, state, 0), None
+    if game.get_turn(state) == 0:
+        if is_terminal_state[0]:
+            return is_terminal_state[1][0], None
+        result_value, result_action = float('-inf'), None
+        heuristic_values = [(heuristic(game, game.get_successor(state, action), 0), action) for action in game.get_actions(state)]
+        heuristic_values.sort(key=lambda x: x[0], reverse=True)
+        for heuristic_value, action in heuristic_values:
+            value = alphabeta_with_move_ordering_recursive(game, game.get_successor(state, action), heuristic, max_depth - 1, alpha, beta)[0]
+            if value >= beta:
+                return value, action
+            if value > result_value:
+                result_value, result_action = value, action
+            alpha = max(alpha, result_value)
+        return result_value, result_action
+    else:
+        if is_terminal_state[0]:
+            return is_terminal_state[1][1], None
+        result_value, result_action = float('inf'), None
+        heuristic_values = [(heuristic(game, game.get_successor(state, action), 0), action) for action in game.get_actions(state)]
+        heuristic_values.sort(key=lambda x: x[0])
+        for heuristic_value, action in heuristic_values:
+            value = alphabeta_with_move_ordering_recursive(game, game.get_successor(state, action), heuristic, max_depth - 1, alpha, beta)[0]
+            if value <= alpha:
+                return value, action
+            if value < result_value:
+                result_value, result_action = value, action
+            beta = min(beta, result_value)
+        return result_value, result_action
+
+
 # Apply Alpha Beta pruning with move ordering and return the tree value and the best action
 # Hint: Read the hint for minimax.
 def alphabeta_with_move_ordering(game: Game[S, A], state: S, heuristic: HeuristicFunction, max_depth: int = -1) -> Tuple[float, A]:
     # TODO: Complete this function
-    NotImplemented()
+    return alphabeta_with_move_ordering_recursive(game, state, heuristic, max_depth)
 
 
 # Apply Expectimax search and return the tree value and the best action
