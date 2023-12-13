@@ -46,7 +46,7 @@ def minimax(game: Game[S, A], state: S, heuristic: HeuristicFunction, max_depth:
         return result_value, result_action
     else:
         if is_terminal_state[0]:
-            return is_terminal_state[1][1], None
+            return is_terminal_state[1][0], None
         result_value, result_action = float('inf'), None
         for action in game.get_actions(state):
             value = minimax(game, game.get_successor(state, action), heuristic, max_depth - 1)[0]
@@ -74,7 +74,7 @@ def alphabeta_recursive(game: Game[S, A], state: S, heuristic: HeuristicFunction
         return result_value, result_action
     else:
         if is_terminal_state[0]:
-            return is_terminal_state[1][1], None
+            return is_terminal_state[1][0], None
         result_value, result_action = float('inf'), None
         for action in game.get_actions(state):
             value = alphabeta_recursive(game, game.get_successor(state, action), heuristic, max_depth - 1, alpha, beta)[0]
@@ -115,7 +115,7 @@ def alphabeta_with_move_ordering_recursive(game: Game[S, A], state: S, heuristic
         return result_value, result_action
     else:
         if is_terminal_state[0]:
-            return is_terminal_state[1][1], None
+            return is_terminal_state[1][0], None
         result_value, result_action = float('inf'), None
         heuristic_values = [(heuristic(game, game.get_successor(state, action), 0), action) for action in game.get_actions(state)]
         heuristic_values.sort(key=lambda x: x[0])
@@ -151,13 +151,13 @@ def expectimax_recursive(game: Game[S, A], state: S, heuristic: HeuristicFunctio
         return result_value, result_action
     else:
         if is_terminal_state[0]:
-            return is_terminal_state[1][1], None
-        actions = game.get_actions(state)
-        predicted_action = 0
-        for action in actions:
+            return is_terminal_state[1][0], None
+        result_value, result_action = 0, None
+        for action in game.get_actions(state):
             value = expectimax_recursive(game, game.get_successor(state, action), heuristic, max_depth - 1)[0]
-            predicted_action += value
-        return predicted_action / len(actions), None
+            result_value += value
+        result_value /= len(game.get_actions(state))
+        return result_value, result_action
 
 
 # Apply Expectimax search and return the tree value and the best action
