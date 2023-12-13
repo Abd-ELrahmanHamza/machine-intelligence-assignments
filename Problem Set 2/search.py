@@ -55,11 +55,42 @@ def minimax(game: Game[S, A], state: S, heuristic: HeuristicFunction, max_depth:
         return result_value, result_action
 
 
+def alphabeta_recursive(game: Game[S, A], state: S, heuristic: HeuristicFunction, max_depth: int = -1, alpha: float = float('-inf'),
+                        beta: float = float('inf')) -> Tuple[float, A]:
+    is_terminal_state = game.is_terminal(state)
+    if max_depth == 0:
+        return heuristic(game, state, 0), None
+    if game.get_turn(state) == 0:
+        if is_terminal_state[0]:
+            return is_terminal_state[1][0], None
+        result_value, result_action = float('-inf'), None
+        for action in game.get_actions(state):
+            value = alphabeta_recursive(game, game.get_successor(state, action), heuristic, max_depth - 1, alpha, beta)[0]
+            if value >= beta:
+                return value, action
+            if value > result_value:
+                result_value, result_action = value, action
+            alpha = max(alpha, result_value)
+        return result_value, result_action
+    else:
+        if is_terminal_state[0]:
+            return is_terminal_state[1][1], None
+        result_value, result_action = float('inf'), None
+        for action in game.get_actions(state):
+            value = alphabeta_recursive(game, game.get_successor(state, action), heuristic, max_depth - 1, alpha, beta)[0]
+            if value <= alpha:
+                return value, action
+            if value < result_value:
+                result_value, result_action = value, action
+            beta = min(beta, result_value)
+        return result_value, result_action
+
+
 # Apply Alpha Beta pruning and return the tree value and the best action
 # Hint: Read the hint for minimax.
 def alphabeta(game: Game[S, A], state: S, heuristic: HeuristicFunction, max_depth: int = -1) -> Tuple[float, A]:
     # TODO: Complete this function
-    NotImplemented()
+    return alphabeta_recursive(game, state, heuristic, max_depth)
 
 
 # Apply Alpha Beta pruning with move ordering and return the tree value and the best action
