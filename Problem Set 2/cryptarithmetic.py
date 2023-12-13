@@ -3,16 +3,17 @@ import re
 from CSP import Assignment, Problem, UnaryConstraint, BinaryConstraint
 
 
+# TODO (Optional): Import any builtin library or define any helper function you want to use
+
 def equal_constraint(x, y):
-    strx = str(x)
-    stry = str(y)
-    sum_x = sum([int(i) for i in strx])
-    sum_y = sum([int(i) for i in stry])
-    # print("sum = ", x, y, sum_x, sum_y, int("14"))
-    return sum_x == int(y)
+    # sum_x = 0
+    # while x > 0:
+    #     sum_x += x % 10
+    #     x //= 10
+    return sum([int(i) for i in str(x)]) == y
 
 
-def create_constraint_with_aux(problem, var1, var2, mod):
+def create_constraint_with_aux(problem, var1, var2):
     aux = var1 + var2
     # var1 is the first variable in the constraint
     problem.constraints.append(BinaryConstraint((var1, aux), lambda x, y: x == y // 10))
@@ -26,17 +27,16 @@ def create_constraint_with_aux(problem, var1, var2, mod):
         for j in problem.domains[var2]:
             problem.domains[aux].add(10 * i + j)
 
-    # TODO (Optional): Import any builtin library or define any helper function you want to use
-
 
 def create_constraints(problem: Problem, LHS0, LHS1, Carries, RHS) -> None:
     iterations = len(RHS)
     for i in range(iterations):
         # Create the constraints for the first iteration
-        create_constraint_with_aux(problem, Carries[i], LHS0[i], 10)
-        create_constraint_with_aux(problem, Carries[i] + LHS0[i], LHS1[i], 100)
-        create_constraint_with_aux(problem, Carries[i + 1], RHS[i], 10)
-        problem.constraints.append(BinaryConstraint((Carries[i] + LHS0[i] + LHS1[i], Carries[i + 1] + RHS[i]), equal_constraint))
+        create_constraint_with_aux(problem, Carries[i], LHS0[i])
+        create_constraint_with_aux(problem, Carries[i] + LHS0[i], LHS1[i])
+        create_constraint_with_aux(problem, Carries[i + 1], RHS[i])
+        problem.constraints.append(
+            BinaryConstraint((Carries[i] + LHS0[i] + LHS1[i], Carries[i + 1] + RHS[i]), lambda x, y: sum([int(i) for i in str(x)]) == int(y)))
 
 
 # This is a class to define for cryptarithmetic puzzles as CSPs
@@ -103,14 +103,17 @@ class CryptArithmeticProblem(Problem):
         var_const = list(set(LHS0 + LHS1 + RHS))
 
         # Add a binary contraint for each pair of variables to be unique
-        for i in range(len(var_const)):
-            for j in range(i + 1, len(var_const)):
+        range_i = range(len(var_const))
+        for i in range_i:
+            range_j = range(i + 1, len(var_const))
+            for j in range_j:
                 problem.constraints.append(BinaryConstraint((var_const[i], var_const[j]), lambda x, y: x != y))
         # Apply unary constraints on the variables to restrict the domain of the variables to be in the range [0,9]
+        set_10, set_2 = set(range(10)), set(range(2))
         for var in var_const:
-            problem.domains[var] = set(range(10))
+            problem.domains[var] = set_10
         for var in Carries:
-            problem.domains[var] = set(range(2))
+            problem.domains[var] = set_2
         for var in padd_of_LHS0:
             problem.domains[var] = {0}
         for var in padd_of_LHS1:
@@ -124,7 +127,6 @@ class CryptArithmeticProblem(Problem):
         problem.domains[LHS1[0]] = set(range(1, 10))
 
         create_constraints(problem, LHS0_Padded, LHS1_Padded, Carries, RHS_Padded)
-
         return problem
 
     # Read a cryptarithmetic puzzle from a file
