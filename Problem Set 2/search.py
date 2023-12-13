@@ -136,9 +136,33 @@ def alphabeta_with_move_ordering(game: Game[S, A], state: S, heuristic: Heuristi
     return alphabeta_with_move_ordering_recursive(game, state, heuristic, max_depth)
 
 
+def expectimax_recursive(game: Game[S, A], state: S, heuristic: HeuristicFunction, max_depth: int = -1) -> Tuple[float, A]:
+    is_terminal_state = game.is_terminal(state)
+    if max_depth == 0:
+        return heuristic(game, state, 0), None
+    if game.get_turn(state) == 0:
+        if is_terminal_state[0]:
+            return is_terminal_state[1][0], None
+        result_value, result_action = float('-inf'), None
+        for action in game.get_actions(state):
+            value = expectimax_recursive(game, game.get_successor(state, action), heuristic, max_depth - 1)[0]
+            if value > result_value:
+                result_value, result_action = value, action
+        return result_value, result_action
+    else:
+        if is_terminal_state[0]:
+            return is_terminal_state[1][1], None
+        actions = game.get_actions(state)
+        predicted_action = 0
+        for action in actions:
+            value = expectimax_recursive(game, game.get_successor(state, action), heuristic, max_depth - 1)[0]
+            predicted_action += value
+        return predicted_action / len(actions), None
+
+
 # Apply Expectimax search and return the tree value and the best action
 # Hint: Read the hint for minimax, but note that the monsters (turn > 0) do not act as min nodes anymore,
 # they now act as chance nodes (they act randomly).
 def expectimax(game: Game[S, A], state: S, heuristic: HeuristicFunction, max_depth: int = -1) -> Tuple[float, A]:
     # TODO: Complete this function
-    NotImplemented()
+    return expectimax_recursive(game, state, heuristic, max_depth)
