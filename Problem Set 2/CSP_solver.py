@@ -61,14 +61,8 @@ def forward_checking(problem: Problem, assigned_variable: str, assigned_value: A
         if other_variable not in domains:
             continue
         # Update the other variable's domain
-        new_domain = set()
-        for value in domains[other_variable]:
-            if assigned_variable == constraint.variables[0]:
-                if constraint.condition(assigned_value, value):
-                    new_domain.add(value)
-            else:
-                if constraint.condition(value, assigned_value):
-                    new_domain.add(value)
+        new_domain = {value for value in domains[other_variable] if
+                      constraint.is_satisfied({assigned_variable: assigned_value, other_variable: value})}
         if not new_domain:
             return False
         domains[other_variable] = new_domain
@@ -102,14 +96,8 @@ def least_restraining_values(problem: Problem, variable_to_assign: str, domains:
             if other_variable not in domains:
                 continue
             # get the other variable's domain
-            new_domain = set()
-            for other_var_value in domains[other_variable]:
-                if variable_to_assign == constraint.variables[0]:
-                    if constraint.condition(value, other_var_value):
-                        new_domain.add(other_var_value)
-                else:
-                    if constraint.condition(other_var_value, value):
-                        new_domain.add(other_var_value)
+            new_domain = {other_var_value for other_var_value in domains[other_variable] if
+                          constraint.is_satisfied({variable_to_assign: value, other_variable: other_var_value})}
             domain_size += len(new_domain)
         # add the value and its domain size to the list
         restraining_values.append((domain_size, value))
