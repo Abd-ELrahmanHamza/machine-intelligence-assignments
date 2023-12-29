@@ -132,11 +132,9 @@ class SnakeEnv(Environment[SnakeObservation, Direction]):
                 done = True
             else:
                 self.apple = self.generate_random_apple()
-        # if the snake head is out of bounds, then wrap around the grid
         elif new_snake_head in self.snake:
             reward -= 100
             done = True
-        # if the snake head is out of bounds, then wrap around the grid
         else:
             self.snake.insert(0, new_snake_head)
             self.snake.pop()
