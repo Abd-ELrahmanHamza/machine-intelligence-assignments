@@ -238,12 +238,20 @@ class ApproximateQLearningAgent(RLAgent[S, A]):
     def __compute_q_from_features(self, features: Dict[str, float], action: A) -> float:
         # TODO: Complete this function
         # NOTE: Remember to cast the action to string before quering self.weights
-        NotImplemented()
+        q = 0
+        for feature, value in features.items():
+            q += self.weights[action][feature] * value
+        return q
 
     # Given the features of a state, compute and return the utility of the state using the function "__compute_q_from_features"
     def __compute_utility_from_features(self, features: Dict[str, float]) -> float:
         # TODO: Complete this function
-        NotImplemented()
+        best_q = float('-inf')
+        for action in self.actions:
+            q = self.__compute_q_from_features(features, action)
+            if q > best_q:
+                best_q = q
+        return best_q
 
     def compute_q(self, env: Environment[S, A], state: S, action: A) -> float:
         features = self.feature_extractor.extract_features(env, state)
@@ -253,7 +261,13 @@ class ApproximateQLearningAgent(RLAgent[S, A]):
     def update(self, env: Environment[S, A], state: S, action: A, reward: float, next_state: S, done: bool):
         # TODO: Complete this function to update weights using the Q-Learning update rule
         # If done is True, then next_state is a terminal state in which case, we consider the Q-value of next_state to be 0
-        NotImplemented()
+        features = self.feature_extractor.extract_features(env, state)
+        next_q = 0
+        current_q = self.__compute_q_from_features(features, action)
+        if not done:
+            next_q = self.__compute_utility_from_features(self.feature_extractor.extract_features(env, next_state))
+        for feature, value in features.items():
+            self.weights[action][feature] += self.learning_rate * (reward + self.discount_factor * next_q - current_q) * value
 
     # Save the weights to a json file
     def save(self, env: Environment[S, A], file_path: str):
