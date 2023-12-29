@@ -95,7 +95,7 @@ class SARSALearningAgent(RLAgent[S, A]):
         next_q = 0
         if next_action is not None:
             next_q = self.compute_q(env, next_state, next_action)
-        self.Q[state][action] += self.learning_rate * (reward + self.discount_factor * next_q - self.Q[state][action])
+        self.Q[state][action] += self.learning_rate * (reward + self.discount_factor * next_q - self.compute_q(env, state, action))
 
     # Save the Q-table to a json file
     def save(self, env: Environment[S, A], file_path: str):
@@ -150,13 +150,21 @@ class QLearningAgent(RLAgent[S, A]):
     # Given a state, compute and return the utility of the state using the function "compute_q"
     def compute_utility(self, env: Environment[S, A], state: S) -> float:
         # TODO: Complete this function.
-        NotImplemented()
+        best_q = float('-inf')
+        for action in env.actions():
+            q = self.compute_q(env, state, action)
+            if q > best_q:
+                best_q = q
+        return best_q
 
     # Update the value of Q(state, action) using this transition via the Q-Learning update rule
     def update(self, env: Environment[S, A], state: S, action: A, reward: float, next_state: S, done: bool):
         # TODO: Complete this function to update Q-table using the Q-Learning update rule
         # If done is True, then next_state is a terminal state in which case, we consider the Q-value of next_state to be 0
-        NotImplemented()
+        next_q = 0
+        if not done:
+            next_q = self.compute_utility(env, next_state)
+        self.Q[state][action] += self.learning_rate * (reward + self.discount_factor * next_q - self.compute_q(env, state, action))
 
     # Save the Q-table to a json file
     def save(self, env: Environment[S, A], file_path: str):
