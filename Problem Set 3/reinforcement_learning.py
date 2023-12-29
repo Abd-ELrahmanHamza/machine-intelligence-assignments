@@ -7,6 +7,7 @@ from helpers.utils import NotImplemented
 import json
 from collections import defaultdict
 
+
 # The base class for all Reinforcement Learning Agents required for this problem set
 
 
@@ -44,11 +45,19 @@ class RLAgent(Agent[S, A]):
         actions = env.actions()
         if training and self.should_explore():
             # TODO: Return a random action whose index is "self.rng.int(0, len(actions)-1)"
-            NotImplemented()
+            return actions[self.rng.int(0, len(actions) - 1)]
         else:
             # TODO: return the action with the maximum q-value as calculated by "compute_q" above
             # if more than one action has the maximum q-value, return the one that appears first in the "actions" list
-            NotImplemented()
+            best_action = None
+            best_q = float('-inf')
+            for action in actions:
+                q = self.compute_q(env, observation, action)
+                if q > best_q:
+                    best_q = q
+                    best_action = action
+            return best_action
+
 
 #############################
 #######     SARSA      ######
@@ -59,6 +68,7 @@ class RLAgent(Agent[S, A]):
 
 class SARSALearningAgent(RLAgent[S, A]):
     Q: DefaultDict[S, DefaultDict[A, float]]  # The table of the Q values
+
     # The first key is the string representation of the state
     # The second key is the string representation of the action
     # The value is the Q-value of the given state and action
@@ -82,7 +92,10 @@ class SARSALearningAgent(RLAgent[S, A]):
     def update(self, env: Environment[S, A], state: S, action: A, reward: float, next_state: S, next_action: Optional[A]):
         # TODO: Complete this function to update Q-table using the SARSA update rule
         # If next_action is None, then next_state is a terminal state in which case, we consider the Q-value of next_state to be 0
-        NotImplemented()
+        next_q = 0
+        if next_action is not None:
+            next_q = self.compute_q(env, next_state, next_action)
+        self.Q[state][action] += self.learning_rate * (reward + self.discount_factor * next_q - self.Q[state][action])
 
     # Save the Q-table to a json file
     def save(self, env: Environment[S, A], file_path: str):
@@ -104,6 +117,7 @@ class SARSALearningAgent(RLAgent[S, A]):
                 } for state, state_q in Q.items()
             }
 
+
 #############################
 #####   Q-Learning     ######
 #############################
@@ -113,6 +127,7 @@ class SARSALearningAgent(RLAgent[S, A]):
 
 class QLearningAgent(RLAgent[S, A]):
     Q: DefaultDict[str, DefaultDict[str, float]]  # The table of the Q values
+
     # The first key is the string representation of the state
     # The second key is the string representation of the action
     # The value is the Q-value of the given state and action
@@ -163,12 +178,14 @@ class QLearningAgent(RLAgent[S, A]):
                 } for state, state_q in Q.items()
             }
 
+
 #########################################
 #####   Approximate Q-Learning     ######
 #########################################
 # The type definition for a set of features representing a state
 # The key is the feature name and the value is the feature value
 Features = Dict[str, float]
+
 
 # This class takes a state and returns the a set of features
 
@@ -185,11 +202,12 @@ class FeatureExtractor(Generic[S, A]):
     def extract_features(self, env: Environment[S, A], state: S) -> Features:
         return {}
 
+
 # This is a class for a generic Q-learning agent
 
 
 class ApproximateQLearningAgent(RLAgent[S, A]):
-    weights: Dict[A, Features]    # The weights dictionary for this agent.
+    weights: Dict[A, Features]  # The weights dictionary for this agent.
     # The first key is action and the second key is the feature name
     # The value is the weight
     # The feature extractor used to extract the features corresponding to a state
